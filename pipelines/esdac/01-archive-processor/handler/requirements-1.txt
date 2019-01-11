@@ -1,0 +1,5 @@
+confluent-kafka==0.11.4
+requests==2.20.0
+pyunpack==0.1.2
+patool==1.12
+rasterio==1.0.9

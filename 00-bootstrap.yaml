@@ -1,0 +1,47 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: bootstrap-soc-data
+  namespace: fast-platform
+  labels:
+    platform: fast
+    module: core
+    data: soc
+spec:
+  template:
+    metadata:
+      labels:
+        platform: fast
+        module: core
+        data: soc
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: kafka
+        image: confluentinc/cp-kafka:4.0.1-1 
+        imagePullPolicy: Always
+        command:
+        - sh
+        - -c
+        - |
+          kafka-topics --zookeeper $ZOOKEEPER_HOST:$ZOOKEEPER_PORT --topic soc-pipe-download --create --partitions 3 --replication-factor 1 --if-not-exists
+          kafka-topics --zookeeper $ZOOKEEPER_HOST:$ZOOKEEPER_PORT --topic soc-pipe --create --partitions 3 --replication-factor 1 --if-not-exists
+        env:
+        - name: ZOOKEEPER_HOST
+          value: zookeeper.kafka.svc.cluster.local
+        - name: ZOOKEEPER_PORT
+          value: "2181"
+      - name: mongodb
+        image: docker.io/bitnami/mongodb:4.0.2-debian-9
+        imagePullPolicy: Always
+        command:
+        - sh
+        - -c
+        - |
+          mongo fast --host $MONGODB_HOST --port $MONGODB_PORT --eval 'db.createCollection("soc")'
+          mongo fast --host $MONGODB_HOST --port $MONGODB_PORT --eval 'db.soc.createIndex({"geometry":"2dsphere"})'          
+        env:
+        - name: MONGODB_HOST
+          value: mongodb.mongodb.svc.cluster.local
+        - name: MONGODB_PORT
+          value: "27017"
